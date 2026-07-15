@@ -136,14 +136,22 @@ button:focus{ outline: 3px solid rgba(244,167,192,0.28); outline-offset:3px; }
   .controls button{ width:100%; }
 }
 
-/* Hamburger menu styles */
-.hamburger{ display:none; background:transparent; border:0; font-size:1.25rem; line-height:1; }
-#mainControls.open{ display:flex; }
+/* Hamburger menu styles (CSS checkbox hack) */
+.hamburger{ display:none; background:transparent; border:0; font-size:1.25rem; line-height:1; cursor:pointer; }
+
+/* hidden checkbox used to toggle menu on mobile: use .sr-only to keep it accessible */
 
 @media (max-width:640px){
   .hamburger{ display:inline-flex; align-items:center; justify-content:center; }
+  /* mobile: initially hide the controls menu */
   #mainControls{ display:flex; opacity:0; pointer-events:none; transform: translateX(12px); position:absolute; right:0.75rem; top:5.4rem; background:linear-gradient(180deg, rgba(255,255,255,0.95), rgba(249,246,246,0.95)); padding:0.6rem; border-radius:12px; box-shadow:0 10px 30px rgba(43,36,48,0.12); flex-direction:column; gap:0.5rem; min-width:160px; transition: transform .22s ease, opacity .22s ease; }
-  #mainControls.open{ opacity:1; pointer-events:auto; transform: translateX(0); }
+
+  /* when the checkbox is checked, show the menu */
+  #menu-toggle:checked ~ #mainControls{ opacity:1; pointer-events:auto; transform: translateX(0); }
+
+  /* optional: animate the hamburger label when active */
+  #menu-toggle:checked + .hamburger{ background:rgba(255,255,255,0.9); }
+
   #mainControls button{ width:100%; text-align:left; display:flex; align-items:center; gap:0.75rem; }
   .menu-icon{ display:inline-flex; width:1.4rem; justify-content:center; font-size:1rem; }
 }
