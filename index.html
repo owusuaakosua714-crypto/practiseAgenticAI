@@ -6,6 +6,10 @@
     <title>Magic Forest — Fairy Catcher</title>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;700;900&display=swap" rel="stylesheet">
+    <meta property="og:image" content="https://owusuaakosua714-crypto.github.io/practiseAgenticAI/images/photo.png">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="600">
     <script>
       tailwind = { config: { theme: { extend: { fontFamily: { fredoka: ['Fredoka', 'sans-serif'] } } } } }
     </script>
@@ -25,8 +29,9 @@
           </div>
         </div>
         <div class="controls relative">
-          <button id="hamburger" class="hamburger md:hidden px-3 py-2 rounded-lg bg-white/60 hover:bg-white/80" aria-label="Open menu" aria-expanded="false" aria-controls="mainControls">☰</button>
-          <nav id="mainControls" class="flex items-center space-x-2" role="navigation" aria-label="Main controls">
+          <input type="checkbox" id="menu-toggle" class="sr-only" aria-label="Toggle menu" aria-controls="mainControls">
+          <label for="menu-toggle" class="hamburger md:hidden px-3 py-2 rounded-lg bg-white/60 hover:bg-white/80" aria-hidden="false">☰</label>
+          <nav id="mainControls" class="flex items-center space-x-2 nav-links" role="navigation" aria-label="Main controls">
             <button id="startBtn" class="control-btn rounded-3xl bg-rose-300 hover:bg-rose-400 px-6 py-3 text-lg font-bold shadow-lg"><span class="menu-icon">▶</span>Start</button>
             <button id="demoBtn" class="control-btn rounded-3xl bg-emerald-200 hover:bg-emerald-300 px-5 py-2 text-sm font-semibold shadow"><span class="menu-icon">✨</span>Demo</button>
             <button id="resetBtn" class="control-btn rounded-3xl bg-amber-200 hover:bg-amber-300 px-4 py-2 text-sm font-semibold shadow"><span class="menu-icon">↺</span>Reset</button>
@@ -245,21 +250,7 @@
         });
       });
 
-      // Mobile hamburger toggle
-      const hamburger = document.getElementById('hamburger');
-      const mainControls = document.getElementById('mainControls');
-      if(hamburger && mainControls){
-        hamburger.addEventListener('click', ()=>{
-          const open = mainControls.classList.toggle('open');
-          hamburger.setAttribute('aria-expanded', open);
-        });
-        // close menu when a control is clicked (mobile)
-        mainControls.addEventListener('click', (e)=>{
-          if(window.innerWidth <= 640){ mainControls.classList.remove('open'); hamburger.setAttribute('aria-expanded', 'false'); }
-        });
-        // ensure menu closed on resize to desktop
-        window.addEventListener('resize', ()=>{ if(window.innerWidth > 640){ mainControls.classList.remove('open'); hamburger.setAttribute('aria-expanded', 'false'); } });
-      }
+      // Mobile hamburger is handled via CSS checkbox hack; no JS required
     </script>
   </body>
 </html>
