@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Magic Forest — Fairy Catcher</title>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;700;900&display=swap" rel="stylesheet">
+    <script>
+      tailwind = { config: { theme: { extend: { fontFamily: { fredoka: ['Fredoka', 'sans-serif'] } } } } }
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="src/style.css">
+  </head>
+  <body class="bg-gradient-to-br from-pink-50 via-rose-50 to-white min-h-screen text-amber-900">
+    <main class="max-w-4xl mx-auto p-6">
+      <header class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-4">
+          <div class="w-16 h-16 bg-gradient-to-br from-petal-200 to-petal-500 rounded-3xl flex items-center justify-center thick-frame" aria-hidden>
+            <span class="text-2xl">✨</span>
+          </div>
+          <div>
+            <h1 class="text-4xl md:text-5xl font-extrabold">Magic Forest</h1>
+            <p class="text-sm text-amber-700/80">A friendly game for little explorers — catch fairies and collect sparkles!</p>
+          </div>
+        </div>
+        <div class="controls relative">
+          <button id="hamburger" class="hamburger md:hidden px-3 py-2 rounded-lg bg-white/60 hover:bg-white/80" aria-label="Open menu" aria-expanded="false" aria-controls="mainControls">☰</button>
+          <nav id="mainControls" class="flex items-center space-x-2" role="navigation" aria-label="Main controls">
+            <button id="startBtn" class="control-btn rounded-3xl bg-rose-300 hover:bg-rose-400 px-6 py-3 text-lg font-bold shadow-lg"><span class="menu-icon">▶</span>Start</button>
+            <button id="demoBtn" class="control-btn rounded-3xl bg-emerald-200 hover:bg-emerald-300 px-5 py-2 text-sm font-semibold shadow"><span class="menu-icon">✨</span>Demo</button>
+            <button id="resetBtn" class="control-btn rounded-3xl bg-amber-200 hover:bg-amber-300 px-4 py-2 text-sm font-semibold shadow"><span class="menu-icon">↺</span>Reset</button>
+          </nav>
+        </div>
+      </header>
+
+      <section class="relative bg-white rounded-3xl p-6 md:p-10 thick-frame overflow-hidden" aria-label="Game area">
+        <div class="flex justify-between items-center mb-4">
+          <div class="flex items-center gap-4">
+            <div class="w-14 h-14 rounded-2xl overflow-hidden thick-frame">
+              <img loading="lazy" src="https://placehold.co/200x200/ffd1e6/6b2e4a?text=Forest+%F0%9F%8C%B8&font=Fredoka" alt="Cartoon forest illustration" class="w-full h-full object-cover">
+            </div>
+            <div>
+              <p class="text-sm text-amber-700/80">Score</p>
+              <div id="score" class="text-3xl font-extrabold">0</div>
+            </div>
+          </div>
+          <div class="text-sm text-amber-700/80">Time left: <span id="timer">30</span>s</div>
+        </div>
+
+        <div id="playfield" class="relative h-80 md:h-96 bg-gradient-to-b from-rose-50 to-petal-50 rounded-2xl overflow-hidden">
+          <p class="sr-only" id="gameInstructions">Click the sparkly fairies that appear to earn points. Press Start to play.</p>
+        </div>
+      </section>
+
+      <section class="mt-6 text-center">
+        <p class="text-sm text-amber-700/80">Collect as many sparkles as you can. Fairies give more points than mushrooms!</p>
+      </section>
+
+      <section class="story mt-8 bg-rose-50/60 p-6 rounded-2xl thick-frame">
+        <h2 class="text-2xl font-bold mb-2">Welcome to the Magic Forest</h2>
+        <p>Deep inside the Magic Forest live tiny fairies, giggling mushrooms, and twinkling stars. Today you're a Sparkle Catcher — a gentle helper who finds shy fairies and gives them a tiny flower to say hello. As you click fairies and sparkles, you'll collect points and learn fun forest secrets!</p>
+      </section>
+
+      <section class="mt-6">
+        <h3 class="text-xl font-bold mb-3">Meet the Friends</h3>
+        <div class="character-grid" id="friendsGrid">
+          <div class="character enter-up stagger-1">
+            <img src="images/faye.svg" alt="Faye the Fairy illustration" class="card-img mb-2">
+            <strong>Faye the Fairy</strong>
+            <div class="text-sm text-amber-700/80">Likes sparkles and singing to the moon.</div>
+          </div>
+          <div class="character enter-up stagger-2">
+            <img src="images/milo.svg" alt="Milo the Mushroom illustration" class="card-img mb-2">
+            <strong>Milo the Mushroom</strong>
+            <div class="text-sm text-amber-700/80">A shy mushroom who pops up for a game.</div>
+          </div>
+          <div class="character enter-up stagger-3">
+            <img src="images/twinkle.svg" alt="Twinkle Star illustration" class="card-img mb-2">
+            <strong>Twinkle Star</strong>
+            <div class="text-sm text-amber-700/80">A tiny star who loves to dance in the trees.</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="mt-6">
+        <h3 class="text-xl font-bold mb-2">How to Play</h3>
+        <ol class="list-decimal list-inside text-sm space-y-2 text-amber-700/80">
+          <li>Press <strong>Start</strong> to begin the 30 second round.</li>
+          <li>Click or press Enter/Space on fairies and sparkles to collect them.</li>
+          <li>Fairies give more points than mushrooms — try to catch the fairies!</li>
+          <li>When time's up, you'll see your score. Try again to beat it!</li>
+        </ol>
+        <div class="mt-4">
+          <button id="startGameBtn" class="start-game-btn rounded-3xl bg-emerald-300 hover:bg-emerald-400 px-6 py-3 text-lg font-bold shadow-lg">Start Game</button>
+        </div>
+      </section>
+
+      <section class="mt-6">
+        <h3 class="text-xl font-bold mb-3">Picture Gallery</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 gallery" id="galleryGrid">
+          <img src="images/forest1.svg" alt="Sunlit forest illustration" class="card-img rounded-2xl enter-up stagger-1">
+          <img src="images/forest2.svg" alt="Forest path illustration" class="card-img rounded-2xl enter-up stagger-2">
+          <img src="images/mushrooms.svg" alt="Mushrooms on log illustration" class="card-img rounded-2xl enter-up stagger-3">
+        </div>
+      </section>
+
+    </main>
+
+    <footer class="text-center p-6 text-xs text-amber-700/70">Images from Unsplash • Play safely and have fun ✨</footer>
+
+    <script>
+      // Simple Fairy Catcher game
+      const startBtn = document.getElementById('startBtn');
+      const resetBtn = document.getElementById('resetBtn');
+      const playfield = document.getElementById('playfield');
+      const scoreEl = document.getElementById('score');
+      const timerEl = document.getElementById('timer');
+
+      let score = 0; let timeLeft = 30; let gameInterval = null; let spawnInterval = null;
+
+      function setScore(n){ score = n; scoreEl.textContent = score; }
+
+      function playBeep(freq=720, duration=0.12){
+        try{
+          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+          const o = ctx.createOscillator();
+          const g = ctx.createGain();
+          o.type = 'sine'; o.frequency.value = freq;
+          g.gain.value = 0.001;
+          o.connect(g); g.connect(ctx.destination);
+          o.start();
+          g.gain.exponentialRampToValueAtTime(0.12, ctx.currentTime + 0.01);
+          g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
+          setTimeout(()=>{ o.stop(); ctx.close(); }, duration*1000+50);
+        }catch(e){ /* Audio blocked on some browsers */ }
+      }
+
+      function spawnCreature(){
+        const types = [
+          {emoji:'🧚', pts:3, color:'pink'},
+          {emoji:'🍄', pts:1, color:'amber'},
+          {emoji:'🌟', pts:2, color:'rose'}
+        ];
+        const t = types[Math.floor(Math.random()*types.length)];
+        const node = document.createElement('div');
+        node.className = 'creature floating select-none';
+        node.style.left = Math.random()*80 + '%';
+        node.style.top = Math.random()*70 + '%';
+        node.style.fontSize = (28 + Math.random()*36) + 'px';
+        node.style.zIndex = 40;
+        node.innerHTML = `<div aria-hidden class="w-14 h-14 flex items-center justify-center rounded-3xl bg-${t.color}-200/80 border-4 border-${t.color}-300 shadow-xl creature bounce">${t.emoji}</div>`;
+        node.setAttribute('role','button');
+        node.setAttribute('tabindex','0');
+        node.dataset.pts = t.pts;
+        playfield.appendChild(node);
+
+        function collect(){
+          const pts = Number(node.dataset.pts || 1);
+          setScore(score + pts);
+          playBeep(520 + pts*120, 0.12);
+          node.style.transition = 'transform .4s ease, opacity .4s ease';
+          node.style.transform = 'scale(0)';
+          node.style.opacity = '0';
+          setTimeout(()=> node.remove(), 450);
+        }
+
+        node.addEventListener('click', collect);
+        node.addEventListener('keydown', (e)=>{ if(e.key === 'Enter' || e.key===' ') { e.preventDefault(); collect(); } });
+
+        // auto-remove after a while
+        setTimeout(()=>{ if(document.body.contains(node)){ node.remove(); } }, 4800 + Math.random()*3000);
+      }
+
+      function startGame(){
+        setScore(0); timeLeft = 30; timerEl.textContent = timeLeft;
+        if(spawnInterval) clearInterval(spawnInterval);
+        spawnInterval = setInterval(spawnCreature, 650);
+        if(gameInterval) clearInterval(gameInterval);
+        gameInterval = setInterval(()=>{
+          timeLeft -= 1; timerEl.textContent = timeLeft;
+          if(timeLeft <= 0){
+            clearInterval(gameInterval); clearInterval(spawnInterval);
+            spawnInterval = null; gameInterval = null;
+            endGame();
+          }
+        }, 1000);
+      }
+
+      function endGame(){
+        const msg = document.createElement('div');
+        msg.className = 'absolute inset-0 flex items-center justify-center bg-white/80';
+        msg.innerHTML = `<div class="bg-rose-50 p-6 rounded-3xl thick-frame text-center">
+            <h2 class="text-2xl font-extrabold mb-2">Time's up!</h2>
+            <p class="mb-4">You scored <span class="font-bold">${score}</span> sparkles ✨</p>
+            <button id="again" class="rounded-3xl bg-rose-300 px-6 py-3 font-bold">Play Again</button>
+          </div>`;
+        playfield.appendChild(msg);
+        document.getElementById('again').addEventListener('click', ()=>{ msg.remove(); startGame(); });
+      }
+
+      startBtn.addEventListener('click', ()=>{ startGame(); startBtn.blur(); });
+      const demoBtn = document.getElementById('demoBtn');
+      function runDemo(){
+        // temporary demo overlay that shows a friendly fairy being caught automatically
+        const overlay = document.createElement('div');
+        overlay.className = 'absolute inset-0 flex items-center justify-center pointer-events-none';
+        overlay.innerHTML = `<div class="bg-white/90 p-4 rounded-2xl thick-frame text-center w-80">
+            <h3 class="font-bold mb-2">How to Play</h3>
+            <p class="text-sm mb-3">Watch the fairy and try to click it when you play!</p>
+            <div id="demoArea" class="relative h-40"></div>
+          </div>`;
+        playfield.appendChild(overlay);
+
+        const demoArea = overlay.querySelector('#demoArea');
+        // spawn a single big demo fairy and animate it moving
+        const d = document.createElement('div');
+        d.className = 'absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2';
+        d.innerHTML = `<div class="w-20 h-20 flex items-center justify-center rounded-3xl bg-pink-200 border-4 border-pink-300 shadow-xl bounce">🧚</div>`;
+        demoArea.appendChild(d);
+
+        // simulate sparkle and sound
+        let cnt = 0;
+        const int = setInterval(()=>{
+          playBeep(700 + cnt*60, 0.14);
+          d.classList.add('scale-110');
+          setTimeout(()=> d.classList.remove('scale-110'), 180);
+          cnt++;
+          if(cnt>4){ clearInterval(int); setTimeout(()=> overlay.remove(), 500); }
+        }, 600);
+      }
+      demoBtn.addEventListener('click', ()=>{ runDemo(); demoBtn.blur(); });
+      resetBtn.addEventListener('click', ()=>{ setScore(0); timerEl.textContent = '30'; timeLeft=30; if(spawnInterval) clearInterval(spawnInterval); if(gameInterval) clearInterval(gameInterval); });
+      const startGameBtn = document.getElementById('startGameBtn');
+      if(startGameBtn){ startGameBtn.addEventListener('click', ()=>{ startGame(); startGameBtn.blur(); }); }
+
+      // gentle initial decorations
+      for(let i=0;i<6;i++){ setTimeout(spawnCreature, 200*i); }
+
+      // Staggered entrance animation for friends and gallery
+      window.addEventListener('load', ()=>{
+        const items = document.querySelectorAll('.enter-up');
+        items.forEach((el, i)=>{
+          setTimeout(()=> el.classList.add('entered'), 120 + i*100);
+        });
+      });
+
+      // Mobile hamburger toggle
+      const hamburger = document.getElementById('hamburger');
+      const mainControls = document.getElementById('mainControls');
+      if(hamburger && mainControls){
+        hamburger.addEventListener('click', ()=>{
+          const open = mainControls.classList.toggle('open');
+          hamburger.setAttribute('aria-expanded', open);
+        });
+        // close menu when a control is clicked (mobile)
+        mainControls.addEventListener('click', (e)=>{
+          if(window.innerWidth <= 640){ mainControls.classList.remove('open'); hamburger.setAttribute('aria-expanded', 'false'); }
+        });
+        // ensure menu closed on resize to desktop
+        window.addEventListener('resize', ()=>{ if(window.innerWidth > 640){ mainControls.classList.remove('open'); hamburger.setAttribute('aria-expanded', 'false'); } });
+      }
+    </script>
+  </body>
+</html>
