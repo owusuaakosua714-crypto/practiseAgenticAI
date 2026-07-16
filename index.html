@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
     <title>Magic Forest — Fairy Catcher</title>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;700;900&display=swap" rel="src/stylesheet">
@@ -14,6 +14,21 @@
       tailwind = { config: { theme: { extend: { fontFamily: { fredoka: ['Fredoka', 'sans-serif'] } } } } }
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      html, body, #playfield, .creature, button {
+        touch-action: none;
+        -webkit-touch-callout: none;
+        -webkit-user-drag: none;
+        user-select: none;
+      }
+      body, #playfield, .creature {
+        -webkit-touch-callout: none;
+        -webkit-user-drag: none;
+      }
+      #playfield {
+        -webkit-tap-highlight-color: transparent;
+      }
+    </style>
     <link rel="stylesheet" href="src/style.css">
   </head>
   <body class="bg-gradient-to-br from-pink-50 via-rose-50 to-white min-h-screen text-amber-900">
@@ -84,7 +99,7 @@
           <div class="bg-white p-5 rounded-3xl border border-rose-100 shadow-sm">
             <p class="text-sm text-amber-700/80 mb-2">Shared score</p>
             <div id="sharedScoreDisplay" class="text-3xl font-extrabold text-rose-600">No shared score yet</div>
-            <p class="text-xs text-amber-700/70 mt-3">Open a shared link from another viewer to see their score here.</p>
+            <div id="shareHelpText" class="text-xs text-amber-700/70 mt-3">Latest shared score from another open session will appear automatically.</div>
           </div>
         </div>
       </section>
@@ -152,14 +167,34 @@
       const playfield = document.getElementById('playfield');
       const scoreEl = document.getElementById('score');
       const timerEl = document.getElementById('timer');
+      if(document.body){
+        document.body.style.touchAction = 'none';
+        document.body.style.msTouchAction = 'none';
+        document.body.style.webkitTouchCallout = 'none';
+        document.body.style.webkitUserSelect = 'none';
+        document.body.style.userSelect = 'none';
+        document.body.addEventListener('contextmenu', (e)=> e.preventDefault());
+        document.body.addEventListener('pointerdown', (e)=> { if(e.pointerType === 'touch') e.preventDefault(); });
+      }
+      if(playfield){
+        playfield.style.touchAction = 'none';
+        playfield.style.userSelect = 'none';
+        playfield.style.webkitUserSelect = 'none';
+        playfield.style.webkitTouchCallout = 'none';
+        playfield.addEventListener('contextmenu', (e)=> e.preventDefault());
+        playfield.addEventListener('pointerdown', (e)=> { if(e.pointerType === 'touch') e.preventDefault(); });
+        playfield.addEventListener('touchstart', (e)=> e.preventDefault());
+      }
       const lastScoreDisplay = document.getElementById('lastScoreDisplay');
       const bestScoreDisplay = document.getElementById('bestScoreDisplay');
       const clearStatsBtn = document.getElementById('clearStatsBtn');
       const sharedBanner = document.getElementById('sharedBanner');
       const sharedBannerText = document.getElementById('sharedBannerText');
+      const shareHelpText = document.getElementById('shareHelpText');
       const topScoresList = document.getElementById('topScoresList');
       const top3Notice = document.getElementById('top3Notice');
       const sharedScoreDisplay = document.getElementById('sharedScoreDisplay');
+      const sharedScoreKey = 'magicForest_sharedScoreEntry';
 
       let score = 0; let timeLeft = 30; let gameInterval = null; let spawnTimeout = null; let gameActive = false;
       const MAX_CREATURES = 10; // limit simultaneous DOM nodes for smoothness
@@ -200,8 +235,23 @@
         node.innerHTML = `<div aria-hidden class="w-14 h-14 flex items-center justify-center rounded-3xl bg-${t.color}-200/80 border-4 border-${t.color}-300 shadow-xl creature bounce">${t.emoji}</div>`;
         node.setAttribute('role','button');
         node.setAttribute('tabindex','0');
+        node.setAttribute('draggable','false');
         node.dataset.pts = t.pts;
         node.style.willChange = 'transform, opacity';
+        node.style.touchAction = 'none';
+        node.style.userSelect = 'none';
+        node.style.webkitUserSelect = 'none';
+        node.style.webkitTouchCallout = 'none';
+        node.addEventListener('contextmenu', (e)=> e.preventDefault());
+        node.addEventListener('pointerdown', (e)=> { if(e.pointerType === 'touch') e.preventDefault(); });
+        node.addEventListener('touchstart', (e)=> e.preventDefault());
+        node.addEventListener('mousedown', (e)=> { if(e.button === 2) e.preventDefault(); });
+        const inner = node.querySelector('.creature');
+        if(inner){
+          inner.addEventListener('contextmenu', (e)=> e.preventDefault());
+          inner.addEventListener('pointerdown', (e)=> { if(e.pointerType === 'touch') e.preventDefault(); });
+          inner.addEventListener('touchstart', (e)=> e.preventDefault());
+        }
         playfield.appendChild(node);
 
         function collect(){
@@ -244,8 +294,10 @@
           const prevBest = Number(localStorage.getItem('magicForest_bestScore') || 0);
           if(score > prevBest){ localStorage.setItem('magicForest_bestScore', String(score)); }
           saveTopScore(score);
+          saveSharedScore(score);
           loadStats();
           updateLeaderboard();
+          showSharedScore();
         }catch(e){ /* localStorage may be blocked */ }
       }
 
@@ -254,6 +306,7 @@
           localStorage.removeItem('magicForest_lastScore');
           localStorage.removeItem('magicForest_bestScore');
           localStorage.removeItem('magicForest_topScores');
+          localStorage.removeItem(sharedScoreKey);
         }catch(e){}
         loadStats();
         updateLeaderboard();
@@ -275,6 +328,21 @@
           const sorted = scores.sort((a,b)=>b-a).slice(0,3);
           localStorage.setItem('magicForest_topScores', JSON.stringify(sorted));
         }catch(e){ }
+      }
+
+      function saveSharedScore(value, name='Player'){
+        try{
+          const entry = { name, score: Number(value), timestamp: Date.now() };
+          localStorage.setItem(sharedScoreKey, JSON.stringify(entry));
+        }catch(e){ }
+      }
+
+      function getSharedScoreEntry(){
+        try{
+          const raw = localStorage.getItem(sharedScoreKey);
+          if(!raw) return null;
+          return JSON.parse(raw);
+        }catch(e){ return null; }
       }
 
       function updateLeaderboard(sharedScore){
@@ -310,29 +378,38 @@
         const shared = params.get('sharedScore');
         const sharedName = params.get('sharedName');
         const sharedScoreNum = shared !== null ? Number(shared) : null;
+        let entry = null;
+
         if(shared && sharedName){
-          const text = `${decodeURIComponent(sharedName)} scored ${shared}`;
-          sharedScoreDisplay.textContent = text;
-          if(sharedBanner && sharedBannerText){
-            sharedBannerText.textContent = text;
-            sharedBanner.classList.remove('hidden');
-          }
-          updateLeaderboard(sharedScoreNum);
+          entry = { name: decodeURIComponent(sharedName), score: sharedScoreNum };
+          saveSharedScore(sharedScoreNum, entry.name);
         } else if(shared){
-          const text = `Shared score: ${shared}`;
-          sharedScoreDisplay.textContent = text;
+          entry = { name: 'Player', score: sharedScoreNum };
+          saveSharedScore(sharedScoreNum, entry.name);
+        } else {
+          const stored = getSharedScoreEntry();
+          if(stored && typeof stored.score === 'number'){
+            entry = stored;
+          }
+        }
+
+        if(entry){
+          sharedScoreDisplay.textContent = `${entry.name} scored ${entry.score}`;
           if(sharedBanner && sharedBannerText){
-            sharedBannerText.textContent = text;
+            sharedBannerText.textContent = `${entry.name} scored ${entry.score}`;
             sharedBanner.classList.remove('hidden');
           }
-          updateLeaderboard(sharedScoreNum);
-        } else {
-          sharedScoreDisplay.textContent = 'No shared score yet';
-          if(sharedBanner){
-            sharedBanner.classList.add('hidden');
-          }
-          updateLeaderboard();
+          updateLeaderboard(entry.score);
+          if(shareHelpText){ shareHelpText.textContent = 'Latest shared score from another open session is shown automatically.'; }
+          return;
         }
+
+        sharedScoreDisplay.textContent = 'No shared score yet';
+        if(sharedBanner){
+          sharedBanner.classList.add('hidden');
+        }
+        updateLeaderboard();
+        if(shareHelpText){ shareHelpText.textContent = 'After a round, your score will be shared with other open tabs.'; }
       }
 
       window.addEventListener('storage', (event)=>{
