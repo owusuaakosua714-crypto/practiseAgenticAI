@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Magic Forest — Fairy Catcher</title>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;700;900&display=swap" rel="src/stylesheet">
     <meta property="og:image" content="https://owusuaakosua714-crypto.github.io/practiseAgenticAI/images/photo.png">
     <meta property="og:image:type" content="image/png">
     <meta property="og:image:width" content="1200">
@@ -45,10 +45,16 @@
             <div class="w-14 h-14 rounded-2xl overflow-hidden thick-frame">
               <img loading="lazy" src="https://placehold.co/200x200/ffd1e6/6b2e4a?text=Forest+%F0%9F%8C%B8&font=Fredoka" alt="Cartoon forest illustration" class="w-full h-full object-cover">
             </div>
-            <div>
-              <p class="text-sm text-amber-700/80">Score</p>
-              <div id="score" class="text-3xl font-extrabold">0</div>
-            </div>
+              <div>
+                <p class="text-sm text-amber-700/80">Score</p>
+                <div id="score" class="text-3xl font-extrabold">0</div>
+                <div class="flex items-center gap-3 mt-1">
+                  <div class="text-xs text-amber-700/70">
+                    <span id="lastScoreDisplay">Last: —</span> · <span id="bestScoreDisplay">Best: —</span>
+                  </div>
+                  <button id="clearStatsBtn" class="text-xs text-rose-600/90 hover:underline">Clear Stats</button>
+                </div>
+              </div>
           </div>
           <div class="text-sm text-amber-700/80">Time left: <span id="timer">30</span>s</div>
         </div>
@@ -121,8 +127,12 @@
       const playfield = document.getElementById('playfield');
       const scoreEl = document.getElementById('score');
       const timerEl = document.getElementById('timer');
+      const lastScoreDisplay = document.getElementById('lastScoreDisplay');
+      const bestScoreDisplay = document.getElementById('bestScoreDisplay');
+      const clearStatsBtn = document.getElementById('clearStatsBtn');
 
-      let score = 0; let timeLeft = 30; let gameInterval = null; let spawnInterval = null;
+      let score = 0; let timeLeft = 30; let gameInterval = null; let spawnTimeout = null;
+      const MAX_CREATURES = 10; // limit simultaneous DOM nodes for smoothness
 
       function setScore(n){ score = n; scoreEl.textContent = score; }
 
@@ -142,6 +152,9 @@
       }
 
       function spawnCreature(){
+        // avoid too many simultaneous creatures for smoother performance
+        const existing = playfield.querySelectorAll('.creature').length;
+        if(existing >= MAX_CREATURES) return;
         const types = [
           {emoji:'🧚', pts:3, color:'pink'},
           {emoji:'🍄', pts:1, color:'amber'},
@@ -158,35 +171,81 @@
         node.setAttribute('role','button');
         node.setAttribute('tabindex','0');
         node.dataset.pts = t.pts;
+        node.style.willChange = 'transform, opacity';
         playfield.appendChild(node);
 
         function collect(){
+          // cancel auto-remove timer if set
+          const tid = Number(node.dataset._autoRem || 0);
+          if(tid){ clearTimeout(tid); }
           const pts = Number(node.dataset.pts || 1);
           setScore(score + pts);
           playBeep(520 + pts*120, 0.12);
           node.style.transition = 'transform .4s ease, opacity .4s ease';
           node.style.transform = 'scale(0)';
           node.style.opacity = '0';
-          setTimeout(()=> node.remove(), 450);
+          setTimeout(()=> requestAnimationFrame(()=> node.remove()), 450);
+          // spawn an immediate replacement so player doesn't wait after tapping
+          setTimeout(()=> spawnCreature(), 120);
+          setTimeout(()=> spawnCreature(), 260);
         }
 
         node.addEventListener('click', collect);
         node.addEventListener('keydown', (e)=>{ if(e.key === 'Enter' || e.key===' ') { e.preventDefault(); collect(); } });
 
         // auto-remove after a while
-        setTimeout(()=>{ if(document.body.contains(node)){ node.remove(); } }, 4800 + Math.random()*3000);
+        const autoRemoveDelay = 3800 + Math.random()*2400;
+        const autoRem = setTimeout(()=>{ if(document.body.contains(node)){ requestAnimationFrame(()=> node.remove()); } }, autoRemoveDelay);
+        node.dataset._autoRem = String(autoRem);
+      }
+
+      // Stats: localStorage save/load
+      function loadStats(){
+        const last = localStorage.getItem('magicForest_lastScore');
+        const best = localStorage.getItem('magicForest_bestScore');
+        lastScoreDisplay.textContent = 'Last: ' + (last !== null ? last : '—');
+        bestScoreDisplay.textContent = 'Best: ' + (best !== null ? best : '—');
+      }
+
+      function saveStats(){
+        try{
+          localStorage.setItem('magicForest_lastScore', String(score));
+          const prevBest = Number(localStorage.getItem('magicForest_bestScore') || 0);
+          if(score > prevBest){ localStorage.setItem('magicForest_bestScore', String(score)); }
+          loadStats();
+        }catch(e){ /* localStorage may be blocked */ }
+      }
+
+      function clearStats(){
+        try{
+          localStorage.removeItem('magicForest_lastScore');
+          localStorage.removeItem('magicForest_bestScore');
+        }catch(e){}
+        loadStats();
+      }
+
+      // dynamic spawn loop: faster spawns as time decreases
+      function spawnLoop(){
+        if(timeLeft <= 0) return;
+        const elapsed = 30 - timeLeft;
+        const spawnCount = Math.min(6, 1 + Math.floor(elapsed / 4)); // ramp faster up to 6
+        for(let i=0;i<spawnCount;i++){
+          spawnCreature();
+        }
+        const delay = Math.max(80, 700 * (timeLeft / 30));
+        spawnTimeout = setTimeout(spawnLoop, delay);
       }
 
       function startGame(){
         setScore(0); timeLeft = 30; timerEl.textContent = timeLeft;
-        if(spawnInterval) clearInterval(spawnInterval);
-        spawnInterval = setInterval(spawnCreature, 650);
+        if(spawnTimeout) clearTimeout(spawnTimeout);
+        spawnLoop();
         if(gameInterval) clearInterval(gameInterval);
         gameInterval = setInterval(()=>{
           timeLeft -= 1; timerEl.textContent = timeLeft;
           if(timeLeft <= 0){
-            clearInterval(gameInterval); clearInterval(spawnInterval);
-            spawnInterval = null; gameInterval = null;
+            clearInterval(gameInterval); clearTimeout(spawnTimeout);
+            spawnTimeout = null; gameInterval = null;
             endGame();
           }
         }, 1000);
@@ -202,6 +261,8 @@
           </div>`;
         playfield.appendChild(msg);
         document.getElementById('again').addEventListener('click', ()=>{ msg.remove(); startGame(); });
+        // save last/best
+        saveStats();
       }
 
       startBtn.addEventListener('click', ()=>{ startGame(); startBtn.blur(); });
@@ -235,12 +296,16 @@
         }, 600);
       }
       demoBtn.addEventListener('click', ()=>{ runDemo(); demoBtn.blur(); });
-      resetBtn.addEventListener('click', ()=>{ setScore(0); timerEl.textContent = '30'; timeLeft=30; if(spawnInterval) clearInterval(spawnInterval); if(gameInterval) clearInterval(gameInterval); });
+      if(clearStatsBtn){ clearStatsBtn.addEventListener('click', ()=>{ clearStats(); clearStatsBtn.blur(); }); }
+      resetBtn.addEventListener('click', ()=>{ setScore(0); timerEl.textContent = '30'; timeLeft=30; if(spawnTimeout) clearTimeout(spawnTimeout); if(gameInterval) clearInterval(gameInterval); spawnTimeout = null; gameInterval = null; });
       const startGameBtn = document.getElementById('startGameBtn');
       if(startGameBtn){ startGameBtn.addEventListener('click', ()=>{ startGame(); startGameBtn.blur(); }); }
 
       // gentle initial decorations
       for(let i=0;i<6;i++){ setTimeout(spawnCreature, 200*i); }
+
+      // load stored stats
+      window.addEventListener('load', ()=>{ loadStats(); });
 
       // Staggered entrance animation for friends and gallery
       window.addEventListener('load', ()=>{
