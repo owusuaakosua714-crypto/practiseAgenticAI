@@ -59,8 +59,33 @@
           <div class="text-sm text-amber-700/80">Time left: <span id="timer">30</span>s</div>
         </div>
 
+        <div id="sharedBanner" class="mb-4 rounded-3xl bg-emerald-50 border border-emerald-100 p-4 text-sm text-emerald-900 hidden">
+          <span id="sharedBannerText"></span>
+        </div>
+
         <div id="playfield" class="relative h-80 md:h-96 bg-gradient-to-b from-rose-50 to-petal-50 rounded-2xl overflow-hidden">
           <p class="sr-only" id="gameInstructions">Click the sparkly fairies that appear to earn points. Press Start to play.</p>
+        </div>
+      </section>
+
+      <section class="mt-6 bg-rose-50/60 p-6 rounded-2xl thick-frame">
+        <h3 class="text-2xl font-bold mb-4">Leaderboard</h3>
+        <div class="grid gap-4 md:grid-cols-2">
+          <div class="bg-white p-5 rounded-3xl border border-rose-100 shadow-sm">
+            <p class="text-sm text-amber-700/80 mb-2">Top 3 scores</p>
+            <ol id="topScoresList" class="space-y-3 text-lg font-semibold text-amber-900">
+              <li>1. —</li>
+              <li>2. —</li>
+              <li>3. —</li>
+            </ol>
+            <div id="top3Notice" class="mt-3 text-sm text-emerald-700 hidden"></div>
+            <p class="text-xs text-amber-700/70 mt-3">Your best score is saved locally and the top three are shown here.</p>
+          </div>
+          <div class="bg-white p-5 rounded-3xl border border-rose-100 shadow-sm">
+            <p class="text-sm text-amber-700/80 mb-2">Shared score</p>
+            <div id="sharedScoreDisplay" class="text-3xl font-extrabold text-rose-600">No shared score yet</div>
+            <p class="text-xs text-amber-700/70 mt-3">Open a shared link from another viewer to see their score here.</p>
+          </div>
         </div>
       </section>
 
@@ -130,8 +155,13 @@
       const lastScoreDisplay = document.getElementById('lastScoreDisplay');
       const bestScoreDisplay = document.getElementById('bestScoreDisplay');
       const clearStatsBtn = document.getElementById('clearStatsBtn');
+      const sharedBanner = document.getElementById('sharedBanner');
+      const sharedBannerText = document.getElementById('sharedBannerText');
+      const topScoresList = document.getElementById('topScoresList');
+      const top3Notice = document.getElementById('top3Notice');
+      const sharedScoreDisplay = document.getElementById('sharedScoreDisplay');
 
-      let score = 0; let timeLeft = 30; let gameInterval = null; let spawnTimeout = null;
+      let score = 0; let timeLeft = 30; let gameInterval = null; let spawnTimeout = null; let gameActive = false;
       const MAX_CREATURES = 10; // limit simultaneous DOM nodes for smoothness
 
       function setScore(n){ score = n; scoreEl.textContent = score; }
@@ -175,6 +205,7 @@
         playfield.appendChild(node);
 
         function collect(){
+          if(!gameActive) return;
           // cancel auto-remove timer if set
           const tid = Number(node.dataset._autoRem || 0);
           if(tid){ clearTimeout(tid); }
@@ -212,7 +243,9 @@
           localStorage.setItem('magicForest_lastScore', String(score));
           const prevBest = Number(localStorage.getItem('magicForest_bestScore') || 0);
           if(score > prevBest){ localStorage.setItem('magicForest_bestScore', String(score)); }
+          saveTopScore(score);
           loadStats();
+          updateLeaderboard();
         }catch(e){ /* localStorage may be blocked */ }
       }
 
@@ -220,9 +253,95 @@
         try{
           localStorage.removeItem('magicForest_lastScore');
           localStorage.removeItem('magicForest_bestScore');
+          localStorage.removeItem('magicForest_topScores');
         }catch(e){}
         loadStats();
+        updateLeaderboard();
       }
+
+      function getTopScores(){
+        try{
+          const raw = localStorage.getItem('magicForest_topScores');
+          if(!raw) return [];
+          const parsed = JSON.parse(raw);
+          return Array.isArray(parsed) ? parsed : [];
+        }catch(e){ return []; }
+      }
+
+      function saveTopScore(value){
+        try{
+          const scores = getTopScores();
+          scores.push(Number(value));
+          const sorted = scores.sort((a,b)=>b-a).slice(0,3);
+          localStorage.setItem('magicForest_topScores', JSON.stringify(sorted));
+        }catch(e){ }
+      }
+
+      function updateLeaderboard(sharedScore){
+        let scores = getTopScores();
+        if(typeof sharedScore === 'number' && !Number.isNaN(sharedScore)){
+          scores = [...scores, sharedScore];
+        }
+        const topThree = scores.sort((a,b)=>b-a).slice(0,3);
+        if(topScoresList){
+          topScoresList.innerHTML = '';
+          for(let i=0;i<3;i++){
+            const item = document.createElement('li');
+            const value = topThree[i] !== undefined ? topThree[i] : '—';
+            item.textContent = `${i+1}. ${value}`;
+            topScoresList.appendChild(item);
+          }
+        }
+      }
+
+      function showTop3Notice(score){
+        const scores = getTopScores();
+        const index = scores.indexOf(score);
+        if(index !== -1 && index < 3 && top3Notice){
+          top3Notice.textContent = `Nice! You're #${index+1} in the top 3.`;
+          top3Notice.classList.remove('hidden');
+        } else if(top3Notice){
+          top3Notice.classList.add('hidden');
+        }
+      }
+
+      function showSharedScore(){
+        const params = new URLSearchParams(location.search);
+        const shared = params.get('sharedScore');
+        const sharedName = params.get('sharedName');
+        const sharedScoreNum = shared !== null ? Number(shared) : null;
+        if(shared && sharedName){
+          const text = `${decodeURIComponent(sharedName)} scored ${shared}`;
+          sharedScoreDisplay.textContent = text;
+          if(sharedBanner && sharedBannerText){
+            sharedBannerText.textContent = text;
+            sharedBanner.classList.remove('hidden');
+          }
+          updateLeaderboard(sharedScoreNum);
+        } else if(shared){
+          const text = `Shared score: ${shared}`;
+          sharedScoreDisplay.textContent = text;
+          if(sharedBanner && sharedBannerText){
+            sharedBannerText.textContent = text;
+            sharedBanner.classList.remove('hidden');
+          }
+          updateLeaderboard(sharedScoreNum);
+        } else {
+          sharedScoreDisplay.textContent = 'No shared score yet';
+          if(sharedBanner){
+            sharedBanner.classList.add('hidden');
+          }
+          updateLeaderboard();
+        }
+      }
+
+      window.addEventListener('storage', (event)=>{
+        if(event.key && event.key.startsWith('magicForest_')){
+          loadStats();
+          updateLeaderboard();
+          showSharedScore();
+        }
+      });
 
       // dynamic spawn loop: faster spawns as time decreases
       function spawnLoop(){
@@ -237,7 +356,7 @@
       }
 
       function startGame(){
-        setScore(0); timeLeft = 30; timerEl.textContent = timeLeft;
+        setScore(0); timeLeft = 30; timerEl.textContent = timeLeft; gameActive = true;
         if(spawnTimeout) clearTimeout(spawnTimeout);
         spawnLoop();
         if(gameInterval) clearInterval(gameInterval);
@@ -246,6 +365,7 @@
           if(timeLeft <= 0){
             clearInterval(gameInterval); clearTimeout(spawnTimeout);
             spawnTimeout = null; gameInterval = null;
+            gameActive = false;
             endGame();
           }
         }, 1000);
@@ -263,6 +383,7 @@
         document.getElementById('again').addEventListener('click', ()=>{ msg.remove(); startGame(); });
         // save last/best
         saveStats();
+        showTop3Notice(score);
       }
 
       startBtn.addEventListener('click', ()=>{ startGame(); startBtn.blur(); });
@@ -305,7 +426,7 @@
       for(let i=0;i<6;i++){ setTimeout(spawnCreature, 200*i); }
 
       // load stored stats
-      window.addEventListener('load', ()=>{ loadStats(); });
+      window.addEventListener('load', ()=>{ loadStats(); updateLeaderboard(); showSharedScore(); });
 
       // Staggered entrance animation for friends and gallery
       window.addEventListener('load', ()=>{
